@@ -20,3 +20,7 @@ for port in 8080 8443; do curl http://localhost:$port/; done
 Hello World! - port 8080
 Hello World! - port 8443
 ```
+
+# WARNING
+
+DEMO CODE. Use at your peril.
