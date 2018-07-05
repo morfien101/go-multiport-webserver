@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,7 +12,17 @@ import (
 	"time"
 )
 
+var (
+	version     = "0.0.4"
+	versionFlag = flag.Bool("v", false, "Show the version of the app")
+)
+
 func main() {
+	flag.Parse()
+	if *versionFlag {
+		fmt.Printf("%s", version)
+		os.Exit(0)
+	}
 	singalChan := make(chan os.Signal, 1)
 	signal.Notify(singalChan, syscall.SIGINT, syscall.SIGTERM)
 
@@ -20,12 +31,19 @@ func main() {
 	srvErrChan := make(chan error, 2)
 
 	for _, port := range portList {
+		log.Printf("Starting web server on port: %d", port)
 		logger := log.New(os.Stdout, fmt.Sprintf("%d - ", port), 0)
 		srv := newHTTPServer(logger, port)
 		srv.addHandlers(
 			"/",
 			func(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprintln(w, "Hello World! - port", srv.port)
+			},
+		)
+		srv.addHandlers(
+			"/_status",
+			func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprintln(w, "Alive on port", srv.port)
 			},
 		)
 		srv.server.Handler = srv.mux
@@ -98,7 +116,7 @@ func (h *httpServer) setAddress(addr string, port int) {
 
 func (h *httpServer) addHandlers(route string, handlefunc http.HandlerFunc) {
 	h.mux.HandleFunc(route, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		h.logger.Printf("Got reuest on %s.\n", h.server.Addr)
+		h.logger.Printf("Got request for %s on %s.\n", r.RequestURI, h.server.Addr)
 		handlefunc(w, r)
 	}))
 }
